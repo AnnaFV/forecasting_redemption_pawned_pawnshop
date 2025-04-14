@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix
+from xgboost import XGBClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
 # Скачиваем файл с Google Drive по ID
 file_url = 'https://drive.google.com/uc?id=19EiRnFk-CP8FlzWFbSWqV8Q4fEWqodpx'
@@ -80,18 +81,41 @@ X = df.drop(columns=['is_redeemed'])
 y = df['is_redeemed']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Для обучения будем использовать модель Random Forest Classifier
+# 1. Для сравнения обучим несколько моделей. Первая - Random Forest Classifier
 # Создадим и обучим модель
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
+y_pred_rand_for_cl = model.predict(X_test)
 
-# Оценим точность предсказаний
-y_pred = model.predict(X_test)
-accuracy = accuracy_score(y_test, y_pred)
+# Оценка Random Forest Classifier
+print("Результаты Random Forest Classifier:")
+accuracy = accuracy_score(y_test, y_pred_rand_for_cl)
 print(f'Точность: {accuracy * 100:.2f}%')
+print("Отчет о классификации:\n", classification_report(y_test, y_pred_rand_for_cl))
 
 # Построим матрицу ошибок
-conf_matrix = confusion_matrix(y_test, y_pred)
+conf_matrix = confusion_matrix(y_test, y_pred_rand_for_cl)
+plt.figure(figsize=(7, 5))
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues')
+plt.xlabel('Предсказанные метки')
+plt.ylabel('Истинные метки')
+plt.title('Матрица ошибок')
+plt.show()
+
+# 2. XGBoost
+# Создадим и обучим модель
+xgb_model = XGBClassifier(eval_metric='logloss')
+xgb_model.fit(X_train, y_train)
+y_pred_xgb = xgb_model.predict(X_test)
+
+# Оценка XGBoost
+print("Результаты XGBoost:")
+accuracy = accuracy_score(y_test, y_pred_xgb)
+print(f'Точность: {accuracy * 100:.2f}%')
+print("Отчет о классификации:\n", classification_report(y_test, y_pred_xgb))
+
+# Построим матрицу ошибок
+conf_matrix = confusion_matrix(y_test, y_pred_xgb)
 plt.figure(figsize=(7, 5))
 sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues')
 plt.xlabel('Предсказанные метки')

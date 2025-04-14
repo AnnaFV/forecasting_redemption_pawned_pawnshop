@@ -1,0 +1,100 @@
+# Импортируем необходимые библиотеки
+import numpy as np
+import pandas as pd
+import gdown
+import os
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix
+
+# Скачиваем файл с Google Drive по ID
+file_url = 'https://drive.google.com/uc?id=19EiRnFk-CP8FlzWFbSWqV8Q4fEWqodpx'
+output = 'pledge.csv'
+gdown.download(file_url, output, quiet=False)
+
+# Проверим, правильно ли был загружен файл
+os.listdir()
+
+# Читаем файл и создаем DataFrame
+df = pd.read_csv(output, delimiter=';')
+df.head()
+
+# Изучим столбцы датасета
+df.columns
+
+# Получим форму датасета
+df.shape
+
+# И информацию о нем
+df.info()
+
+# Сделаем проверку на наличие пропущенных значений
+if df.isnull().values.any():
+    print("Данные содержат пропущенные значения. Обработайте их перед дальнейшими действиями.")
+
+# Визуализируем распределение возраста
+age_counts = df['client_age'].value_counts().sort_index()
+plt.figure(figsize=(12, 6))
+sns.barplot(x=age_counts.index, y=age_counts.values, color='g', alpha = 0.5)
+plt.title('Количество клиентов по возрасту')
+plt.xlabel('Возраст')
+plt.ylabel('Количество клиентов')
+plt.xticks(rotation=55)
+plt.grid(axis='y')
+plt.show()
+
+# Визуализируем распределение по полу
+plt.figure(figsize=(8, 4))
+sns.countplot(x='client_gender', data=df)
+plt.title('Распределение по полу')
+plt.xlabel('Пол')
+plt.ylabel('Количество клиентов')
+plt.xticks(ticks=[0, 1], labels=['Мужчина', 'Женщина'])
+plt.show()
+
+# Визуализируем связь количества невозвратов и количества выкупов
+plt.figure(figsize=(10, 6))
+sns.countplot(x='default_history_count', hue='is_redeemed', data=df, palette='pastel')
+plt.title('Связь количества невозвратов и количества выкупов')
+plt.xlabel('Количество невозвратов')
+plt.ylabel('Количество клиентов')
+plt.legend(title='Выкуп', labels=['Нет', 'Да'])
+plt.grid()
+plt.show()
+
+# Построим график зависимости процентной ставки от наличия льготы и количества невозвратов ранее
+plt.figure(figsize=(10, 5))
+sns.scatterplot(x='default_history_count', y='interest_rate',
+                hue='benefit', style='benefit', palette={0: 'red', 1: 'green'}, markers={0: 'o', 1: 's'}, data=df)
+plt.title('Процентная ставка, зависящая от количеством невозвратов и наличия льготы')
+plt.xlabel('Количество невозвратов')
+plt.ylabel('Процентная ставка')
+plt.legend(title='Наличие льготы', labels=['Да', 'Нет'])
+plt.grid()
+plt.show()
+
+# Разделим данные на обучающую и тестовую выборки
+X = df.drop(columns=['is_redeemed'])
+y = df['is_redeemed']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Для обучения будем использовать модель Random Forest Classifier
+# Создадим и обучим модель
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Оценим точность предсказаний
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Точность: {accuracy * 100:.2f}%')
+
+# Построим матрицу ошибок
+conf_matrix = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(7, 5))
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues')
+plt.xlabel('Предсказанные метки')
+plt.ylabel('Истинные метки')
+plt.title('Матрица ошибок')
+plt.show()

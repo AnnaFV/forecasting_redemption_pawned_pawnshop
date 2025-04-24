@@ -11,7 +11,7 @@ from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
 # Скачиваем файл с Google Drive по ID
-file_url = 'https://drive.google.com/uc?id=19EiRnFk-CP8FlzWFbSWqV8Q4fEWqodpx'
+file_url = 'https://drive.google.com/uc?id=1m1MFG5A6uaQSRvZslzOr25ZK6XxUek_o'
 output = 'pledge.csv'
 gdown.download(file_url, output, quiet=False)
 
@@ -35,6 +35,10 @@ df.info()
 if df.isnull().values.any():
     print("Данные содержат пропущенные значения. Обработайте их перед дальнейшими действиями.")
 
+# Переведем столбец pledge_date в формат datatime и создадим новый столбец, в котором выделим месяц взятия залога
+df['pledge_date'] = pd.to_datetime(df['pledge_date'], format="%d.%m.%Y")
+df['pledge_month'] = df['pledge_date'].dt.month
+
 # Визуализируем распределение возраста
 age_counts = df['client_age'].value_counts().sort_index()
 plt.figure(figsize=(12, 6))
@@ -53,6 +57,14 @@ plt.title('Распределение по полу')
 plt.xlabel('Пол')
 plt.ylabel('Количество клиентов')
 plt.xticks(ticks=[0, 1], labels=['Мужчина', 'Женщина'])
+plt.show()
+
+# Визуализируем, в какие месяцы чаще всего брали залоги
+plt.figure(figsize=(8, 4))
+sns.countplot(x='pledge_month', data=df)
+plt.title('Распределение по месяцу')
+plt.xlabel('Месяц')
+plt.ylabel('Количество клиентов')
 plt.show()
 
 # Визуализируем связь количества невозвратов и количества выкупов
@@ -76,8 +88,17 @@ plt.legend(title='Наличие льготы', labels=['Да', 'Нет'])
 plt.grid()
 plt.show()
 
+# Построим график, отражающий общее количество выкупов/невыкупов последнего залога
+plt.figure(figsize=(6, 4))
+sns.countplot(x='is_redeemed', data=df)
+plt.title('Распределение по количеству выкупов/невыкупов последнего залога')
+plt.xlabel('Выкупы/невыкупы')
+plt.ylabel('Количество')
+plt.xticks(ticks=[0, 1], labels=['Невыкупы', 'Выкупы'])
+plt.show()
+
 # Разделим данные на обучающую и тестовую выборки
-X = df.drop(columns=['is_redeemed'])
+X = df.drop(columns=['is_redeemed', 'pledge_date'])
 y = df['is_redeemed']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
